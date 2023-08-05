@@ -1,6 +1,12 @@
 import { useState } from "react";
 
-const Chat = ({ chatMessages, sendRTMMessage, setChatMessages, userName }) => {
+const Chat = ({
+  chatMessages,
+  sendRTMMessage,
+  setChatMessages,
+  userName,
+  userNames,
+}) => {
   const [inputMessage, setInputMessage] = useState("");
 
   const handleInputChange = (event) => {
@@ -15,7 +21,7 @@ const Chat = ({ chatMessages, sendRTMMessage, setChatMessages, userName }) => {
       if (isSent) {
         setChatMessages([
           ...chatMessages,
-          { text: inputMessage, name: userName },
+          { text: inputMessage, sender: userName },
         ]);
         setInputMessage("");
       }
@@ -28,7 +34,7 @@ const Chat = ({ chatMessages, sendRTMMessage, setChatMessages, userName }) => {
         <h2>Chat</h2>
       </div>
       <div className="chat-messages">
-        {chatMessages.map(({ text, name }, index) => (
+        {chatMessages.map(({ text, sender }, index) => (
           <div
             key={index}
             className="chat-message"
@@ -37,7 +43,10 @@ const Chat = ({ chatMessages, sendRTMMessage, setChatMessages, userName }) => {
               marginBottom: "10px",
             }}
           >
-            {name}: {text}
+            {text.includes("has joined the meeting!")
+              ? "ACC Bot"
+              : userNames[sender] || sender || "ACC Bot"}
+            : {text}
           </div>
         ))}
       </div>

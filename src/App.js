@@ -21,6 +21,7 @@ const useMicrophoneAndCameraTracks = createMicrophoneAndCameraTracks();
 const VideoCall = (props) => {
   const { setInCall, channelName, userName } = props;
   const [users, setUsers] = useState([]);
+  const [userNames, setUserNames] = useState({});
   const [start, setStart] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const client = useClient();
@@ -32,7 +33,7 @@ const VideoCall = (props) => {
 
   useEffect(() => {
     // function to initialise the SDK
-    let init = async (name) => {
+    let init = async (chName) => {
       client.on("user-published", async (user, mediaType) => {
         console.info("user-published", user, mediaType);
         await client.subscribe(user, mediaType);
@@ -41,6 +42,12 @@ const VideoCall = (props) => {
           setUsers((prevUsers) => {
             return [...prevUsers, user];
           });
+
+          // Add user's name to the userNames state
+          setUserNames((prevUserNames) => ({
+            ...prevUserNames,
+            [user.uid]: userName,
+          }));
         }
         if (mediaType === "audio") {
           user.audioTrack?.play();
@@ -66,7 +73,7 @@ const VideoCall = (props) => {
         });
       });
 
-      await client.join(appId, name, token, null);
+      await client.join(appId, chName, token, null);
 
       if (tracks) {
         await client.publish([tracks[0], tracks[1]]);
@@ -113,24 +120,54 @@ const VideoCall = (props) => {
     setRtmChannel(rtmChannel);
 
     // Set event listeners for incoming messages
-    rtmChannel.on("ChannelMessage", handleRTMMessage);
+    rtmChannel.on("ChannelMessage", (message, memberId) =>
+      handleRTMMessage(message, memberId, rtmChannel)
+    );
+
+    const introMessage = {
+      text: `${userName} has joined the meeting!`,
+      sender: userName,
+    };
+    await rtmChannel.sendMessage({ text: introMessage.text });
+
+    await rtmChannel.sendMessage({ text: "RequestNames" });
 
     setRtmClient(rtmClient);
   };
 
-  useEffect(() => {
-    console.info("messages", chatMessages);
-  }, [chatMessages]);
-
-  const handleRTMMessage = (message, memberId) => {
+  const handleRTMMessage = async (message, memberId, channel) => {
     // Update chatMessages state with the incoming message
-    // console.info("message incoming", message);
-    // console.info("prevMessages", chatMessages);
-    // console.info("message text", message.text);
+
     if (message.text) {
+      // if it's an introduction message
+      if (message.text.includes("has joined the meeting!")) {
+        const newUser = message.text.split("has joined the")[0].trim();
+        if (userNames[memberId]) return;
+        setUserNames((prevUserNames) => ({
+          ...prevUserNames,
+          [memberId]: newUser,
+        }));
+      }
+      // if new user has requested names
+      if (message.text === "RequestNames") {
+        await channel?.sendMessage({ text: `GetUserName ${userName}` });
+        return;
+      }
+      // if existing user has sent their name
+      if (message.text.includes("GetUserName")) {
+        const newUser = message.text.split("GetUserName")[1].trim();
+        if (userNames[memberId]) return;
+        setUserNames((prevUserNames) => ({
+          ...prevUserNames,
+          [memberId]: newUser,
+        }));
+
+        return;
+      }
+
       setChatMessages((prevMessages) => [
         ...prevMessages,
-        { text: message.text, name: message.senderName },
+        { text: message.text, sender: memberId },
       ]);
     }
   };
@@ -140,8 +177,7 @@ const VideoCall = (props) => {
     try {
       if (!rtmChannel) return false;
 
-      console.info("rtmClient", message, "Client:", rtmClient);
-      await rtmChannel.sendMessage({ text: message, senderName: userName });
+      await rtmChannel.sendMessage({ text: message });
       return true;
     } catch (error) {
       console.error("Error sending RTM message:", error);
@@ -189,7 +225,7 @@ const VideoCall = (props) => {
       <div className="App">
         {ready && tracks && (
           <Controls
-            tracks={tracks}
+            tracks={localTracks}
             setStart={setStart}
             setInCall={setInCall}
             toggleScreenShare={toggleScreenShare}
@@ -210,6 +246,7 @@ const VideoCall = (props) => {
           sendRTMMessage={sendRTMMessage}
           setChatMessages={setChatMessages}
           userName={userName}
+          userNames={userNames}
         />
       )}
     </div>
@@ -250,6 +287,10 @@ export const Controls = (props) => {
   const { tracks, setStart, setInCall, toggleScreenShare, screenShareEnabled } =
     props;
   const [trackState, setTrackState] = useState({ video: true, audio: true });
+
+  useEffect(() => {
+    console.info("muting ", trackState.audio, trackState.video);
+  }, [trackState]);
 
   const mute = async (type) => {
     if (type === "audio") {
@@ -308,7 +349,6 @@ const ChannelForm = (props) => {
         placeholder="Enter Channel Name"
         onChange={(e) => setChannelName(e.target.value)}
       />
-      <br />
       <input
         type="text"
         placeholder="Enter Username"

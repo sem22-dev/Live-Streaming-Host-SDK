@@ -1,6 +1,6 @@
-# Getting Started with Create React App
+# Agora Meeting App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project is a simple meeting app that uses the Agora SDK to create a video call, share the screen, and lets send message (publicly/in a channel) between multiple users. It is built using React.
 
 ## Available Scripts
 
