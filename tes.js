@@ -86,7 +86,10 @@ const VideoCall = (props) => {
       console.log("init ready");
       init(channelName);
     }
+
+    // Clean up function
     return () => {
+      // Leave the channel and remove all listeners
       client.leave();
       client.removeAllListeners();
       if (rtmClient) {
@@ -97,6 +100,7 @@ const VideoCall = (props) => {
   }, [channelName, client, ready, tracks]);
 
   useEffect(() => {
+    // Initialize RTM client when video call starts
     if (start) {
       initializeRTM();
     }
@@ -105,6 +109,7 @@ const VideoCall = (props) => {
   const initializeRTM = async () => {
     const uid = client.uid; // Use the same uid as the video client
 
+    // Create an RTM client instance
     const rtmClient = AgoraRTM.createInstance(appId);
 
     // Login to RTM using the same uid
@@ -249,16 +254,29 @@ const VideoCall = (props) => {
 };
 
 const Videos = (props) => {
-  const { tracks } = props;
+  const { users, tracks } = props;
 
   return (
     <div>
       <div id="videos">
         <AgoraVideoPlayer
-          style={{ height: "95%", width: "75%" }}
+          style={{ height: "95%", width: "95%" }}
           className="vid"
-          videoTrack={tracks[1]} // Display the video track of the local participant
+          videoTrack={tracks[1]}
         />
+        {users.length > 0 &&
+          users.map((user) => {
+            if (user.videoTrack) {
+              return (
+                <AgoraVideoPlayer
+                  style={{ height: "95%", width: "95%" }}
+                  className="vid"
+                  videoTrack={user.videoTrack}
+                  key={user.uid}
+                />
+              );
+            } else return null;
+          })}
       </div>
     </div>
   );
@@ -316,51 +334,83 @@ export const Controls = (props) => {
   );
 };
 
-const generateRandomChannelName = () => {
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+
+const generateRandomString = (length) => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
 
-  const fixedLength = 7;  // fix 7 digit random
-
-  for (let i = 0; i < fixedLength; i++) {
-    const randomChar = alphabet[Math.floor(Math.random() * alphabet.length)];
-    result += randomChar;
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters.charAt(randomIndex);
   }
 
   return result;
 };
-// ChannelForm component
+
 const ChannelForm = (props) => {
-  const { setInCall, setUserName, } = props;
+  const { setInCall } = props;
+  const [channelName, setChannelName] = useState("");
+  const [userName, setUserName] = useState("");
 
-  // Set a default username and use the provided initial channelName
-  const defaultUserName = 'seller-id';
-  setUserName(defaultUserName);
+  useEffect(() => {
+    const generatedChannelName = generateRandomString(6);
+    const generatedUserName = generateRandomString(6);
 
-  const handleJoin = (e) => {
+    setChannelName(generatedChannelName);
+    setUserName(generatedUserName);
+  }, []);
+
+  const generateJoinLink = () => {
+    const url = new URL('http://localhost:3000/join');
+    url.searchParams.append('channelName', channelName);
+    url.searchParams.append('userName', userName);
+    return url.toString();
+  };
+
+  const handleJoinClick = (e) => {
     e.preventDefault();
     setInCall(true);
   };
 
+  const handleJoinWithLinkClick = (e) => {
+    e.preventDefault();
+    const joinLink = generateJoinLink();
+    window.open(joinLink, '_blank');
+  };
+
   return (
     <form className="join">
-      <p style={{ color: 'red' }}>
-        Please enter your Agora App ID in App.tsx and refresh the page
-      </p>
-      <button onClick={handleJoin}>Start Selling</button>
+      <label>
+        Channel Name:
+        <input
+          type="text"
+          value={channelName}
+          placeholder="Enter Channel Name"
+          onChange={(e) => setChannelName(e.target.value)}
+        />
+      </label>
+      <label>
+        Username:
+        <input
+          type="text"
+          value={userName}
+          placeholder="Enter Username"
+          onChange={(e) => setUserName(e.target.value)}
+        />
+      </label>
+      <button onClick={handleJoinClick}>Join</button>
+      <button onClick={handleJoinWithLinkClick}>Join with Link</button>
     </form>
   );
-};
-
+}
+// App component
 function App() {
   const [inCall, setInCall] = useState(false);
-  const [channelName, setChannelName] = useState(generateRandomChannelName());
-  const [userName, setUserName] = useState("");
-
+  const [channelName, setChannelName] = useState(generateRandomString());
+  const [userName, setUserName] = useState(generateRandomString ());
   return (
     <div>
       <h1 className="heading">Start Selling</h1>
-      <p>Channel Name: {channelName}</p> {/* Display channel name */}
       {inCall ? (
         <VideoCall
           setInCall={setInCall}
@@ -379,3 +429,4 @@ function App() {
 }
 
 export default App;
+

@@ -86,7 +86,10 @@ const VideoCall = (props) => {
       console.log("init ready");
       init(channelName);
     }
+
+    // Clean up function
     return () => {
+      // Leave the channel and remove all listeners
       client.leave();
       client.removeAllListeners();
       if (rtmClient) {
@@ -97,6 +100,7 @@ const VideoCall = (props) => {
   }, [channelName, client, ready, tracks]);
 
   useEffect(() => {
+    // Initialize RTM client when video call starts
     if (start) {
       initializeRTM();
     }
@@ -105,6 +109,7 @@ const VideoCall = (props) => {
   const initializeRTM = async () => {
     const uid = client.uid; // Use the same uid as the video client
 
+    // Create an RTM client instance
     const rtmClient = AgoraRTM.createInstance(appId);
 
     // Login to RTM using the same uid
@@ -249,16 +254,29 @@ const VideoCall = (props) => {
 };
 
 const Videos = (props) => {
-  const { tracks } = props;
+  const { users, tracks } = props;
 
   return (
     <div>
       <div id="videos">
         <AgoraVideoPlayer
-          style={{ height: "95%", width: "75%" }}
+          style={{ height: "95%", width: "95%" }}
           className="vid"
-          videoTrack={tracks[1]} // Display the video track of the local participant
+          videoTrack={tracks[1]}
         />
+        {users.length > 0 &&
+          users.map((user) => {
+            if (user.videoTrack) {
+              return (
+                <AgoraVideoPlayer
+                  style={{ height: "95%", width: "95%" }}
+                  className="vid"
+                  videoTrack={user.videoTrack}
+                  key={user.uid}
+                />
+              );
+            } else return null;
+          })}
       </div>
     </div>
   );
@@ -316,51 +334,45 @@ export const Controls = (props) => {
   );
 };
 
-const generateRandomChannelName = () => {
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-  let result = '';
-
-  const fixedLength = 7;  // fix 7 digit random
-
-  for (let i = 0; i < fixedLength; i++) {
-    const randomChar = alphabet[Math.floor(Math.random() * alphabet.length)];
-    result += randomChar;
-  }
-
-  return result;
-};
-// ChannelForm component
 const ChannelForm = (props) => {
-  const { setInCall, setUserName, } = props;
-
-  // Set a default username and use the provided initial channelName
-  const defaultUserName = 'seller-id';
-  setUserName(defaultUserName);
-
-  const handleJoin = (e) => {
-    e.preventDefault();
-    setInCall(true);
-  };
+  const { setInCall, setChannelName, setUserName } = props;
 
   return (
     <form className="join">
-      <p style={{ color: 'red' }}>
-        Please enter your Agora App ID in App.tsx and refresh the page
-      </p>
-      <button onClick={handleJoin}>Start Selling</button>
+      {appId === "" && (
+        <p style={{ color: "red" }}>
+          Please enter your Agora App ID in App.tsx and refresh the page
+        </p>
+      )}
+      <input
+        type="text"
+        placeholder="Enter Channel Name"
+        onChange={(e) => setChannelName(e.target.value)}
+      />
+      <input
+        type="text"
+        placeholder="Enter Username"
+        onChange={(e) => setUserName(e.target.value)}
+      />
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          setInCall(true);
+        }}
+      >
+        Join
+      </button>
     </form>
   );
 };
 
-function App() {
+function yser() {
   const [inCall, setInCall] = useState(false);
-  const [channelName, setChannelName] = useState(generateRandomChannelName());
+  const [channelName, setChannelName] = useState("");
   const [userName, setUserName] = useState("");
-
   return (
     <div>
-      <h1 className="heading">Start Selling</h1>
-      <p>Channel Name: {channelName}</p> {/* Display channel name */}
+      <h1 className="heading">Agora Meet</h1>
       {inCall ? (
         <VideoCall
           setInCall={setInCall}
@@ -378,4 +390,4 @@ function App() {
   );
 }
 
-export default App;
+export default yser;
