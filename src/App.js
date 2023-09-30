@@ -330,16 +330,38 @@ const generateRandomChannelName = () => {
   return result;
 };
 // ChannelForm component
-const ChannelForm = (props) => {
-  const { setInCall, setUserName, } = props;
 
-  // Set a default username and use the provided initial channelName
+const ChannelForm = (props) => {
+  const { setInCall, setUserName, setChannelName } = props;
+
   const defaultUserName = 'seller-id';
   setUserName(defaultUserName);
 
-  const handleJoin = (e) => {
+  const handleJoin = async (e) => {
     e.preventDefault();
-    setInCall(true);
+
+    try {
+      const channelName = generateRandomChannelName();
+      const response = await fetch('http://localhost:3004', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ channelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send channel name.');
+      }
+
+      console.log('Channel name sent successfully:', channelName);
+      setChannelName(channelName);
+
+      // Set in call to true
+      setInCall(true);
+    } catch (error) {
+      console.error('Error sending channel name:', error);
+    }
   };
 
   return (
