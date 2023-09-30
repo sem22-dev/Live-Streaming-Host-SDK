@@ -342,7 +342,7 @@ const ChannelForm = (props) => {
 
     try {
       const channelName = generateRandomChannelName();
-      const response = await fetch('http://localhost:3004', {
+      const response = await fetch('https://testapi-mu1b.onrender.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -373,7 +373,7 @@ const ChannelForm = (props) => {
     </form>
   );
 };
-
+// Need to update using random 
 function App() {
   const [inCall, setInCall] = useState(false);
   const [channelName, setChannelName] = useState(generateRandomChannelName());
