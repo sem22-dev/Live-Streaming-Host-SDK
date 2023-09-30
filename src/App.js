@@ -342,7 +342,7 @@ const ChannelForm = (props) => {
 
     try {
       const channelName = generateRandomChannelName();
-      const response = await fetch('https://testapi-mu1b.onrender.com', {
+      const response = await fetch('https://alive-khee.onrender.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
